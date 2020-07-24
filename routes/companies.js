@@ -1,3 +1,4 @@
+const slugify = require('slugify');
 const express = require("express");
 const router = new express.Router();
 const db = require("../db")
@@ -18,14 +19,26 @@ router.get("/", async function (req, res, next) {
 // returns single company
 router.get("/:code", async function (req, res, next) {
   try {
-    const code = req.params.code;
+    const getCode = req.params.code;
     const companyQuery = await db.query(
-      `SELECT code, name, description FROM companies WHERE code=$1`, [code]
+      `SELECT c.code, c.name, c.description, i.industry FROM companies AS c
+       LEFT JOIN companies_industries AS ci 
+       ON ci.comp_code = c.code 
+       LEFT JOIN industries as i
+       ON ci.indust_code = i.i_code
+       WHERE code=$1`, [getCode]
     );
     if (companyQuery.rows.length === 0) {
-      throw new ExpressError(`There is no company with code '${code}`, 404);
+      throw new ExpressError(`There is no company with code '${getCode}`, 404);
     }
-    return res.json({company: companyQuery.rows[0]});
+
+    let { code, name, description } = companyQuery.rows[0];
+    let industries = companyQuery.rows.map(comp => comp.industry);
+
+    return res.json({company: {code: code, 
+                        name: name, 
+                        description: description, 
+                        industries: industries}});
   }
   catch (err) {
     return next(err);
@@ -35,7 +48,9 @@ router.get("/:code", async function (req, res, next) {
 // creates and returns new company
 router.post("/", async function (req, res, next) {
   try {
-    const { code, name, description } = req.body;
+    const { name, description } = req.body;
+    // creates code for company (lower case, no spaces or special characters)
+    const code = slugify(name, {lower: true, strict: true});
     const result = await db.query(
           `INSERT INTO companies (code, name, description)
            VALUES ($1, $2, $3)

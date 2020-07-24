@@ -9,6 +9,8 @@ let testCompany;
 beforeAll(async function() {
   await db.query("DELETE FROM invoices;");
   await db.query("DELETE FROM companies;");
+  await db.query("DELETE FROM industries;");
+  await db.query("DELETE FROM companies_industries;");
 })
 
 beforeEach(async function() { 
@@ -28,6 +30,8 @@ beforeEach(async function() {
 afterEach(async function() {
     await db.query("DELETE FROM invoices;");
     await db.query("DELETE FROM companies;");
+    await db.query("DELETE FROM industries;");
+    await db.query("DELETE FROM companies_industries;");
   });
   
 afterAll(async function() {
@@ -46,7 +50,6 @@ describe("GET /invoices", function() {
 
 describe("GET /invoices/:code", function() {
   test("Gets a single invoice", async function() {
-    console.log(testInvoice.add_date.toString());
     const response = await request(app).get(`/invoices/${testInvoice.id}`);
     expect(response.statusCode).toEqual(200);
     expect(response.body).toEqual({
@@ -87,15 +90,15 @@ describe("PUT /invoices/:id", function() {
   test("Updates a single invoice", async function() {
     const response = await request(app)
       .put(`/invoices/${testInvoice.id}`)
-      .send({amt: 55.00});
+      .send({amt: 50.00, paid : true});
     expect(response.statusCode).toEqual(200);
     expect(response.body).toEqual({
       invoice: {id: testInvoice.id, 
                 comp_code: "apple", 
-                amt: 55.00, paid: false,
-                paid: false, 
+                amt: 50.00,
+                paid: true, 
                 add_date: expect.any(String), 
-                paid_date: null
+                paid_date: expect.any(String)
       }          
     })
   });
